@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'AWS SAM Application about APIGateway Custom Authorizer
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Parameters:
+  FirebaseSAProjectId:
+    Type: String
+    Description: Firebase Service Account Project ID
+    Default: default_project_id
+  FirebaseSAPrivateKeyId:
+    Type: String
+    Description: Firebase Service Account Private Key ID
+    Default: default_private_key_id
+  FirebaseSAPrivateKey:
+    Type: String
+    Description: Firebase Service Account Private Key
+    Default: default_private_key
+  FirebaseSAClientEmail:
+    Type: String
+    Description: Firebase Service Account Client Email
+    Default: default_client_email
+  FirebaseSAClientId:
+    Type: String
+    Description: Firebase Service Account Client ID
+    Default: default_client_id
+  FirebaseSACX509CertUrl:
+    Type: String
+    Description: Firebase Service Account Client x509 cert url
+    Default: default_cx509_cert_url
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: MyLambdaTokenAuthorizer
+        Authorizers:
+          MyLambdaTokenAuthorizer:
+            FunctionArn:
+              Fn::GetAtt:
+              - MyAuthFunction
+              - Arn
+  MyHelloPublicFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: MyHelloPublicFunction
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /public
+            Method: get
+            Auth:
+              Authorizer: NONE
+  MyHelloPrivateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: MyHelloPrivateFunction
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /private
+            Method: get
+  MyAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: MyAuthFunction
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          FIREBASE_SA_PROJECT_ID:
+            Ref: FirebaseSAProjectId
+          FIREBASE_SA_PRIVATE_KEY_ID:
+            Ref: FirebaseSAPrivateKeyId
+          FIREBASE_SA_PRIVATE_KEY:
+            Ref: FirebaseSAPrivateKey
+          FIREBASE_SA_CLIENT_EMAIL:
+            Ref: FirebaseSAClientEmail
+          FIREBASE_SA_CLIENT_ID:
+            Ref: FirebaseSAClientId
+          FIREBASE_SA_CX509_CERT_URL:
+            Ref: FirebaseSACX509CertUrl
+Outputs:
+  MyHelloPublicFunction:
+    Description: Hello Public Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - MyHelloPublicFunction
+      - Arn
+  MyHelloPublicFunctionIamRole:
+    Description: Implicit IAM Role created for Hello Public function
+    Value:
+      Fn::GetAtt:
+      - MyHelloPublicFunctionRole
+      - Arn
+  MyHelloPrivateFunction:
+    Description: Hello Private Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - MyHelloPrivateFunction
+      - Arn
+  MyHelloPrivateFunctionIamRole:
+    Description: Implicit IAM Role created for Hello Private function
+    Value:
+      Fn::GetAtt:
+      - MyHelloPrivateFunctionRole
+      - Arn
